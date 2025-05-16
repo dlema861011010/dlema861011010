@@ -1,4 +1,25 @@
-// This backend endpoint should create a charge and return the response.
+#!/bin/bash
+# Android Build Script
+# Version: 20250419
+
+# Exit immediately if a command exits with a non-zero status.
+set -e
+
+echo "Starting Android project build (20250419)..."
+
+# Navigate to the project root directory (if needed)
+# cd /path/to/your/android/project
+
+# Clean previous builds
+./gradlew clean
+
+# Assemble debug APK
+./gradlew assembleDebug
+
+# Optionally, assemble release APK
+# ./gradlew assembleRelease
+
+echo "Build complete! Check the app/build/outputs/apk/ directory for APK files."// This backend endpoint should create a charge and return the response.
 app.post('/createCharge', async (req: Request, res: Response) => {
   const options = {
     method: 'POST',
