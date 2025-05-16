@@ -1,0 +1,21 @@
+// This backend endpoint should create a charge and return the response.
+app.post('/createCharge', async (req: Request, res: Response) => {
+  const options = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'X-CC-Api-Key': 'your_api_key_here' // Replace this with your Coinbase Commerce API Key
+    },
+    body: JSON.stringify({
+      local_price: { amount: '1', currency: 'USDC' },
+      pricing_type: 'fixed_price',
+      metadata: { some_field: "some_value" } // Optional: Attach metadata like order ID or customer details
+    }),
+  };
+ 
+  const response = await fetch('https://api.commerce.coinbase.com/charges', options);
+  const data = await response.json();
+ 
+  res.json(data);
+});
