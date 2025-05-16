@@ -19,3 +19,45 @@ app.post('/createCharge', async (req: Request, res: Response) => {
  
   res.json(data);
 });
+
+$client = new \GoCardlessPro\Client(array(
+  'access_token' => 'your_access_token_here',
+  'environment'  => \GoCardlessPro\Environment::SANDBOX
+));
+
+$client->billingRequests()->create([
+  "params" => [
+    "mandate_request" => [
+      "scheme" => "bacs"
+    ]
+  ]
+]);
+
+
+{
+  "billing_requests": {
+    "id": "BRQ123",
+    "status": "pending",
+    "payment_request": null,
+    "mandate_request": {
+      "currency": "GBP",
+      "scheme": "bacs"
+    },
+    "links": {
+      "customer": "CU00016WDAM7BS",
+      "customer_billing_detail": "CBD000010PDF4WD",
+      "mandate_request": "MRQ123",
+      "organisation": "OR123"
+    },
+    "actions": [
+      {
+        "type": "collect_customer_details",
+        "status": "pending",
+      },
+      {
+        "type": "collect_bank_account",
+        "status": "pending"
+      }
+    ]
+  }
+}
