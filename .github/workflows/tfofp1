@@ -1,0 +1,63 @@
+// This backend endpoint should create a charge and return the response.
+app.post('/createCharge', async (req: Request, res: Response) => {
+  const options = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'X-CC-Api-Key': 'your_api_key_here' // Replace this with your Coinbase Commerce API Key
+    },
+    body: JSON.stringify({
+      local_price: { amount: '1', currency: 'USDC' },
+      pricing_type: 'fixed_price',
+      metadata: { some_field: "some_value" } // Optional: Attach metadata like order ID or customer details
+    }),
+  };
+ 
+  const response = await fetch('https://api.commerce.coinbase.com/charges', options);
+  const data = await response.json();
+ 
+  res.json(data);
+});
+
+$client = new \GoCardlessPro\Client(array(
+  'access_token' => 'your_access_token_here',
+  'environment'  => \GoCardlessPro\Environment::SANDBOX
+));
+
+$client->billingRequests()->create([
+  "params" => [
+    "mandate_request" => [
+      "scheme" => "bacs"
+    ]
+  ]
+]);
+
+
+{
+  "billing_requests": {
+    "id": "BRQ123",
+    "status": "pending",
+    "payment_request": null,
+    "mandate_request": {
+      "currency": "GBP",
+      "scheme": "bacs"
+    },
+    "links": {
+      "customer": "CU00016WDAM7BS",
+      "customer_billing_detail": "CBD000010PDF4WD",
+      "mandate_request": "MRQ123",
+      "organisation": "OR123"
+    },
+    "actions": [
+      {
+        "type": "collect_customer_details",
+        "status": "pending",
+      },
+      {
+        "type": "collect_bank_account",
+        "status": "pending"
+      }
+    ]
+  }
+}
