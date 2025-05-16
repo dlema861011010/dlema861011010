@@ -1,3 +1,31 @@
 https://central.sonatype.com/api/v1/publisher/deployments/download/%2Fapi%2Fv1%2Fpublisher%2Fdeployments%2Ffileshttps://raw.githubusercontent.com/trycua/cua/main/scripts/playground.sh
 
 /data/data/com.termux/files/home/.cache/pip/wheels/4b/7e/c9/790cf7aa78dda41022bc5dcdd6c97143a4e929209465bfe52
+
+name: CI Workflow
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 21
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm test
