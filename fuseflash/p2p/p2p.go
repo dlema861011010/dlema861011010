@@ -10,6 +10,8 @@ import (
 	"net"
 	"sync"
 	"time"
+
+	"github.com/dlema861011010/dlema861011010/fuseflash/base58"
 )
 
 // NodeID is a 32-byte identifier for a peer node.
@@ -18,6 +20,22 @@ type NodeID [32]byte
 // String returns the hex-encoded form of the NodeID.
 func (id NodeID) String() string {
 	return hex.EncodeToString(id[:])
+}
+
+// Base58 returns the Base58-encoded form of the NodeID.
+func (id NodeID) Base58() string {
+	return base58.Encode(id[:])
+}
+
+// ParseNodeIDBase58 decodes a Base58 string into a NodeID.
+func ParseNodeIDBase58(s string) (NodeID, error) {
+	b, err := base58.DecodeFixed(s, 32)
+	if err != nil {
+		return NodeID{}, fmt.Errorf("parse node id base58: %w", err)
+	}
+	var id NodeID
+	copy(id[:], b)
+	return id, nil
 }
 
 // GenerateNodeID creates a cryptographically random NodeID.
