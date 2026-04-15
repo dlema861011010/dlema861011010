@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/dlema861011010/dlema861011010/fuseflash/base58"
 )
 
 // Hash is a 32-byte block/transaction hash.
@@ -18,6 +20,9 @@ type Hash [32]byte
 
 // String returns the hex-encoded hash.
 func (h Hash) String() string { return hex.EncodeToString(h[:]) }
+
+// Base58 returns the Base58-encoded form of the hash.
+func (h Hash) Base58() string { return base58.Encode(h[:]) }
 
 // ZeroHash is the all-zero hash, used as the parent of the genesis block.
 var ZeroHash Hash
