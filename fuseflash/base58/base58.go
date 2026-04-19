@@ -88,10 +88,10 @@ func Decode(s string) ([]byte, error) {
 	// Decode Base58 characters into a big integer.
 	n := new(big.Int)
 	for _, c := range s {
-		idx := alphabetIdx[c]
-		if idx < 0 {
+		if c >= 256 || alphabetIdx[c] < 0 {
 			return nil, fmt.Errorf("base58 decode: invalid character %q: %w", c, ErrInvalidCharacter)
 		}
+		idx := alphabetIdx[c]
 		n.Mul(n, big58)
 		n.Add(n, big.NewInt(int64(idx)))
 	}
@@ -106,7 +106,8 @@ func Decode(s string) ([]byte, error) {
 }
 
 // DecodeFixed decodes a Base58 string and returns exactly size bytes.
-// It returns an error if the decoded length does not match size.
+// It zero-pads on the left if shorter, and returns an error if the decoded
+// output exceeds size.
 func DecodeFixed(s string, size int) ([]byte, error) {
 	b, err := Decode(s)
 	if err != nil {

@@ -70,6 +70,17 @@ func TestDecode_InvalidCharacter(t *testing.T) {
 	}
 }
 
+func TestDecode_MultiByteCharacter(t *testing.T) {
+	// Multi-byte UTF-8 characters (rune >= 256) must return an error, not panic.
+	_, err := Decode("abc🌍xyz")
+	if err == nil {
+		t.Error("expected error for multi-byte character, got nil")
+	}
+	if !errors.Is(err, ErrInvalidCharacter) {
+		t.Errorf("expected ErrInvalidCharacter, got: %v", err)
+	}
+}
+
 func TestDecode_EmptyString(t *testing.T) {
 	got, err := Decode("")
 	if err != nil {
