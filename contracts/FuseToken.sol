@@ -158,7 +158,9 @@ contract FuseToken is IERC20 {
         require(from != address(0), "FuseToken: transfer from zero address");
         require(to   != address(0), "FuseToken: transfer to zero address");
         require(_balances[from] >= amount, "FuseToken: transfer exceeds balance");
-        unchecked { _balances[from] -= amount; }
+        unchecked {
+            _balances[from] -= amount;
+        }
         _balances[to] += amount;
         emit Transfer(from, to, amount);
     }

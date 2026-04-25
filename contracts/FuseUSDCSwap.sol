@@ -17,10 +17,28 @@ import "./interfaces/IERC20.sol";
  *
  * Swap callers pay a 0.3 % fee that stays in the pool (increases reserves).
  *
+ * Overflow note: Solidity ^0.8 reverts on overflow automatically.  The initial
+ * share calculation (_sqrt(a * b)) therefore reverts for extremely large first
+ * deposits (a * b > type(uint256).max).  Practical deposit sizes are far below
+ * this limit.
+ *
  * ⚠ This is a reference implementation intended for educational purposes.
  *   Production deployments require audits and further hardening.
  */
 contract FuseUSDCSwap {
+    // -------------------------------------------------------------------------
+    // Reentrancy guard
+    // -------------------------------------------------------------------------
+    uint256 private _reentrancyStatus;
+    uint256 private constant _NOT_ENTERED = 1;
+    uint256 private constant _ENTERED     = 2;
+
+    modifier nonReentrant() {
+        require(_reentrancyStatus != _ENTERED, "FuseUSDCSwap: reentrant call");
+        _reentrancyStatus = _ENTERED;
+        _;
+        _reentrancyStatus = _NOT_ENTERED;
+    }
     // -------------------------------------------------------------------------
     // Constants
     // -------------------------------------------------------------------------
@@ -112,9 +130,10 @@ contract FuseUSDCSwap {
      */
     constructor(address _fuseToken, address _usdcToken) {
         require(_fuseToken != address(0) && _usdcToken != address(0), "FuseUSDCSwap: zero address");
-        owner     = msg.sender;
-        fuseToken = IERC20(_fuseToken);
-        usdcToken = IERC20(_usdcToken);
+        owner             = msg.sender;
+        fuseToken         = IERC20(_fuseToken);
+        usdcToken         = IERC20(_usdcToken);
+        _reentrancyStatus = _NOT_ENTERED;
     }
 
     // =========================================================================
@@ -159,7 +178,7 @@ contract FuseUSDCSwap {
      * @notice Withdraw ETH and FUSE from the ETH/FUSE pool proportionally.
      * @param shares Number of LP shares to redeem.
      */
-    function removeLiquidityETHFUSE(uint256 shares) external {
+    function removeLiquidityETHFUSE(uint256 shares) external nonReentrant {
         require(shares > 0,                         "FuseUSDCSwap: zero shares");
         require(ethFuseShares[msg.sender] >= shares, "FuseUSDCSwap: insufficient shares");
 
@@ -182,7 +201,7 @@ contract FuseUSDCSwap {
      * @notice Swap ETH for FUSE.
      * @param minFuseOut Minimum FUSE to receive (slippage guard).
      */
-    function swapETHForFUSE(uint256 minFuseOut) external payable {
+    function swapETHForFUSE(uint256 minFuseOut) external payable nonReentrant {
         require(msg.value > 0, "FuseUSDCSwap: zero ETH");
 
         uint256 fuseOut = _getAmountOut(
@@ -205,7 +224,7 @@ contract FuseUSDCSwap {
      * @param fuseIn    FUSE to swap.
      * @param minEthOut Minimum ETH to receive (slippage guard).
      */
-    function swapFUSEForETH(uint256 fuseIn, uint256 minEthOut) external {
+    function swapFUSEForETH(uint256 fuseIn, uint256 minEthOut) external nonReentrant {
         require(fuseIn > 0, "FuseUSDCSwap: zero FUSE");
 
         uint256 ethOut = _getAmountOut(
