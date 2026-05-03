@@ -1,0 +1,22 @@
+{
+  "name": "fuseflash-tap-validator",
+  "version": "1.0.0",
+  "description": "Tap-and-Go P2P validator service for Fuse Flash Token",
+  "main": "tapValidator.js",
+  "scripts": {
+    "start": "node tapValidator.js",
+    "dev": "nodemon tapValidator.js"
+  },
+  "dependencies": {
+    "ethers": "^6.11.0",
+    "express": "^4.18.3",
+    "merkletreejs": "^0.3.11",
+    "keccak": "^3.0.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
