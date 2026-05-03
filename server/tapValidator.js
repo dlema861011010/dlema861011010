@@ -87,6 +87,7 @@ function rebuildTree() {
 }
 
 const tapSignRateLimiter = createRateLimiter(10, 60_000);
+const proofRateLimiter = createRateLimiter(30, 60_000);
 
 // ─── Express app ─────────────────────────────────────────────────────────────
 
@@ -128,7 +129,7 @@ app.post("/whitelist/add", (req, res) => {
  *
  * Response: { proof: string[], merkleRoot: string }
  */
-app.get("/whitelist/proof/:address/:amount", (req, res) => {
+app.get("/whitelist/proof/:address/:amount", proofRateLimiter, (req, res) => {
   const { address, amount } = req.params;
 
   let checksumAddress;
@@ -230,5 +231,5 @@ if (require.main === module) {
   });
 }
 
-module.exports = { app, validatorWallet, whitelistEntries, rebuildTree, getMerkleRoot: () => merkleRoot, tapSignRateLimiter };
+module.exports = { app, validatorWallet, whitelistEntries, rebuildTree, getMerkleRoot: () => merkleRoot, tapSignRateLimiter, proofRateLimiter };
 

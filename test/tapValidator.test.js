@@ -14,6 +14,7 @@ const {
   rebuildTree,
   getMerkleRoot,
   tapSignRateLimiter,
+  proofRateLimiter,
 } = require("../server/tapValidator");
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -28,11 +29,12 @@ function makeLeaf(address, amount) {
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe("tapValidator server", function () {
-  // Reset whitelist state and rate limiter before each test
+  // Reset whitelist state and rate limiters before each test
   beforeEach(function () {
     whitelistEntries.clear();
     rebuildTree();
     tapSignRateLimiter.reset();
+    proofRateLimiter.reset();
   });
 
   // ─── /health ───────────────────────────────────────────────────────────────
