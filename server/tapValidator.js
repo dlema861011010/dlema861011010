@@ -17,6 +17,37 @@ const { ethers } = require("ethers");
 const { MerkleTree } = require("merkletreejs");
 const keccak256 = require("keccak256");
 
+// ─── Simple in-process rate limiter ──────────────────────────────────────────
+
+/**
+ * Creates a basic IP-based rate limiter middleware.
+ * Returns the middleware and a reset function (for testing).
+ * @param {number} maxRequests  Maximum requests per window.
+ * @param {number} windowMs     Window duration in milliseconds.
+ */
+function createRateLimiter(maxRequests, windowMs) {
+  const counts = new Map(); // ip → { count, resetAt }
+  function rateLimiter(req, res, next) {
+    const ip = req.ip || req.socket.remoteAddress || "unknown";
+    const now = Date.now();
+    const entry = counts.get(ip);
+
+    if (!entry || now > entry.resetAt) {
+      counts.set(ip, { count: 1, resetAt: now + windowMs });
+      return next();
+    }
+
+    entry.count += 1;
+    if (entry.count > maxRequests) {
+      return res.status(429).json({ error: "Too many requests – please try again later." });
+    }
+
+    return next();
+  }
+  rateLimiter.reset = () => counts.clear();
+  return rateLimiter;
+}
+
 // ─── Validator signer ────────────────────────────────────────────────────────
 
 const PRIVATE_KEY =
@@ -54,6 +85,8 @@ function rebuildTree() {
   merkleTree = new MerkleTree(leaves, keccak256, { sortPairs: true });
   merkleRoot = "0x" + merkleTree.getRoot().toString("hex");
 }
+
+const tapSignRateLimiter = createRateLimiter(10, 60_000);
 
 // ─── Express app ─────────────────────────────────────────────────────────────
 
@@ -109,14 +142,23 @@ app.get("/whitelist/proof/:address/:amount", (req, res) => {
     return res.status(404).json({ error: "whitelist is empty" });
   }
 
-  const leaf = ethers.solidityPackedKeccak256(
+  const leafHex = ethers.solidityPackedKeccak256(
     ["address", "uint256"],
     [checksumAddress, amount]
   );
+  const leafBuf = Buffer.from(leafHex.slice(2), "hex");
 
-  const proof = merkleTree.getHexProof(leaf);
+  const proof = merkleTree.getHexProof(leafBuf);
+  const rootBuf = merkleTree.getRoot();
 
-  if (proof.length === 0 && !merkleTree.verify(proof, leaf, merkleTree.getRoot())) {
+  // For a single leaf the proof array is empty; verify by checking leaf === root.
+  // For multiple leaves verify the proof path normally.
+  const valid =
+    proof.length === 0
+      ? leafBuf.equals(rootBuf)
+      : merkleTree.verify(proof, leafBuf, rootBuf);
+
+  if (!valid) {
     return res.status(404).json({ error: "address/amount not in whitelist" });
   }
 
@@ -132,7 +174,7 @@ app.get("/whitelist/proof/:address/:amount", (req, res) => {
  * Signs keccak256(abi.encodePacked(from, to, amount, nonce)) using EIP-191
  * personal_sign prefix so the contract can recover with toEthSignedMessageHash.
  */
-app.post("/tap/sign", async (req, res) => {
+app.post("/tap/sign", tapSignRateLimiter, async (req, res) => {
   const { from, to, amount, nonce } = req.body;
 
   if (!from || !to || !amount || !nonce) {
@@ -188,4 +230,5 @@ if (require.main === module) {
   });
 }
 
-module.exports = { app, validatorWallet, whitelistEntries, rebuildTree, getMerkleRoot: () => merkleRoot };
+module.exports = { app, validatorWallet, whitelistEntries, rebuildTree, getMerkleRoot: () => merkleRoot, tapSignRateLimiter };
+

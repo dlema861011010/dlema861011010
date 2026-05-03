@@ -13,6 +13,7 @@ const {
   whitelistEntries,
   rebuildTree,
   getMerkleRoot,
+  tapSignRateLimiter,
 } = require("../server/tapValidator");
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -27,10 +28,11 @@ function makeLeaf(address, amount) {
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe("tapValidator server", function () {
-  // Reset whitelist state before each test
+  // Reset whitelist state and rate limiter before each test
   beforeEach(function () {
     whitelistEntries.clear();
     rebuildTree();
+    tapSignRateLimiter.reset();
   });
 
   // ─── /health ───────────────────────────────────────────────────────────────
@@ -317,6 +319,21 @@ describe("tapValidator server", function () {
       const res2 = await request(app).post("/tap/sign").send({ from, to, amount: amount2, nonce });
 
       expect(res1.body.intentHash).to.not.equal(res2.body.intentHash);
+    });
+
+    it("should return 429 after exceeding the rate limit", async function () {
+      // Reset first to ensure clean state, then exhaust the limit (10 req/min)
+      tapSignRateLimiter.reset();
+      const validBody = { from, to, amount, nonce };
+      const nonces = Array.from({ length: 10 }, (_, i) => "0x" + i.toString(16).padStart(64, "0"));
+
+      for (const n of nonces) {
+        await request(app).post("/tap/sign").send({ ...validBody, nonce: n }).expect(200);
+      }
+
+      // 11th request should be rate-limited
+      const res = await request(app).post("/tap/sign").send(validBody).expect(429);
+      expect(res.body.error).to.include("Too many requests");
     });
   });
 });

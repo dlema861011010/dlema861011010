@@ -23,7 +23,7 @@ contract FuseFlashToken is ERC20, Ownable {
     /// @notice Merkle root used for whitelist claims.
     bytes32 public merkleRoot;
 
-    /// @notice Address authorised to sign Tap-and-Go intents.
+    /// @notice Address authorized to sign Tap-and-Go intents.
     address public tapValidator;
 
     /// @notice Tracks consumed tap nonces to prevent replay attacks.
