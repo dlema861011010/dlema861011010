@@ -1,0 +1,53 @@
+{{! Landing / dashboard }}
+<div class="dashboard">
+  <section class="dashboard__hero">
+    <h1 class="hero__title">FuseFlash <span class="gradient-text">Smart Wallet</span></h1>
+    <p class="hero__subtitle">
+      Peer-to-peer flash transactions on the FuseSpark testnet.
+      Powered by the FuseFlash Go node — bridging Web3 with Go &amp; Python.
+    </p>
+  </section>
+
+  <div class="dashboard__grid">
+    <div class="dashboard__card">
+      <h3>⚡ Flash Send</h3>
+      <p>Route instant P2P micro-transactions through the FuseFlash network with near-zero latency.</p>
+      <LinkTo @route="wallet.send" class="btn btn--primary">Open Wallet →</LinkTo>
+    </div>
+    <div class="dashboard__card">
+      <h3>🔍 Explorer</h3>
+      <p>Browse blocks, transactions, and addresses on the FuseSpark testnet via Blockscout.</p>
+      <LinkTo @route="explorer" class="btn btn--secondary">Open Explorer →</LinkTo>
+    </div>
+    <div class="dashboard__card">
+      <h3>🌉 Bridge</h3>
+      <p>Top up your SPARK balance with Stripe and bridge fiat to the FuseSpark testnet.</p>
+      <LinkTo @route="bridge" class="btn btn--secondary">Open Bridge →</LinkTo>
+    </div>
+  </div>
+
+  <section class="dashboard__stats" id="network-stats">
+    {{! BlockscoutStats component would go here }}
+    <div class="stat">
+      <span class="stat__label">Network</span>
+      <span class="stat__value">FuseSpark Testnet</span>
+    </div>
+    <div class="stat">
+      <span class="stat__label">Chain ID</span>
+      <span class="stat__value">123</span>
+    </div>
+    <div class="stat">
+      <span class="stat__label">Currency</span>
+      <span class="stat__value">SPARK</span>
+    </div>
+    <div class="stat">
+      <span class="stat__label">Explorer</span>
+      <a
+        href="https://explorer.fusespark.io"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="stat__value stat__link"
+      >Blockscout ↗</a>
+    </div>
+  </section>
+</div>

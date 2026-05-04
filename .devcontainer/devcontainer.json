@@ -1,0 +1,57 @@
+{
+  "name": "FuseFlash Dev",
+  "dockerComposeFile": "../docker/docker-compose.yml",
+  "service": "bridge",
+  "workspaceFolder": "/workspace",
+  "overrideCommand": false,
+
+  "features": {
+    "ghcr.io/devcontainers/features/go:1": { "version": "1.21" },
+    "ghcr.io/devcontainers/features/node:1": { "version": "20" },
+    "ghcr.io/devcontainers/features/python:1": { "version": "3.12" },
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "Tobermory.es6-string-html",
+        "bradlc.vscode-tailwindcss",
+        "ms-azuretools.vscode-docker",
+        "github.copilot",
+        "github.copilot-chat",
+        "googlecloudtools.cloudcode",
+        "ms-vscode.makefile-tools"
+      ],
+      "settings": {
+        "go.toolsManagement.autoUpdate": true,
+        "go.lintTool": "golangci-lint",
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "[go]": { "editor.defaultFormatter": "golang.go" },
+        "[python]": { "editor.defaultFormatter": "ms-python.python" },
+        "python.defaultInterpreterPath": "/usr/local/bin/python3",
+        "terminal.integrated.shell.linux": "/bin/bash"
+      }
+    }
+  },
+
+  "postCreateCommand": "bash scripts/dev-setup.sh",
+
+  "forwardPorts": [7777, 8000, 4200],
+  "portsAttributes": {
+    "7777": { "label": "FuseFlash P2P Node", "onAutoForward": "notify" },
+    "8000": { "label": "Bridge API", "onAutoForward": "openBrowser" },
+    "4200": { "label": "Smart Wallet UI", "onAutoForward": "openBrowser" }
+  },
+
+  "remoteEnv": {
+    "FUSEFLASH_RPC_URL": "https://rpc.fusespark.io"
+  }
+}

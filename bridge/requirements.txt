@@ -1,0 +1,8 @@
+web3==4.16.0
+requests==2.32.3
+eth-account==0.13.4
+python-dotenv==1.0.1
+fastapi==0.115.12
+uvicorn[standard]==0.34.0
+httpx==0.28.1
+pydantic==2.11.3

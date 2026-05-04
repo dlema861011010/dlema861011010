@@ -1,0 +1,94 @@
+# GCP Cloud Build — build and push all FuseFlash images
+# Trigger on push to main.  Substitute YOUR_PROJECT_ID before use.
+#
+# Run manually:
+#   gcloud builds submit --config gcp/cloudbuild.yaml .
+
+substitutions:
+  _PROJECT_ID: "YOUR_PROJECT_ID"
+  _REGION: "us-central1"
+  _BRIDGE_IMAGE: "gcr.io/${_PROJECT_ID}/fuseflash-bridge"
+  _WALLET_IMAGE: "gcr.io/${_PROJECT_ID}/fuseflash-wallet"
+  _NODE_IMAGE: "gcr.io/${_PROJECT_ID}/fuseflash-node"
+
+steps:
+  # ── Build Go P2P node ──────────────────────────────────
+  - name: "gcr.io/cloud-builders/docker"
+    id: build-node
+    args:
+      - build
+      - -t
+      - "${_NODE_IMAGE}:${SHORT_SHA}"
+      - -t
+      - "${_NODE_IMAGE}:latest"
+      - -f
+      - docker/Dockerfile.fuseflash
+      - ./fuseflash
+
+  # ── Build Python bridge ────────────────────────────────
+  - name: "gcr.io/cloud-builders/docker"
+    id: build-bridge
+    args:
+      - build
+      - -t
+      - "${_BRIDGE_IMAGE}:${SHORT_SHA}"
+      - -t
+      - "${_BRIDGE_IMAGE}:latest"
+      - -f
+      - docker/Dockerfile.bridge
+      - ./bridge
+
+  # ── Build Ember smart wallet ───────────────────────────
+  - name: "gcr.io/cloud-builders/docker"
+    id: build-wallet
+    args:
+      - build
+      - -t
+      - "${_WALLET_IMAGE}:${SHORT_SHA}"
+      - -t
+      - "${_WALLET_IMAGE}:latest"
+      - -f
+      - docker/Dockerfile.smartwallet
+      - ./smart-wallet
+
+  # ── Push images ────────────────────────────────────────
+  - name: "gcr.io/cloud-builders/docker"
+    id: push-node
+    args: [push, "--all-tags", "${_NODE_IMAGE}"]
+    waitFor: [build-node]
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: push-bridge
+    args: [push, "--all-tags", "${_BRIDGE_IMAGE}"]
+    waitFor: [build-bridge]
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: push-wallet
+    args: [push, "--all-tags", "${_WALLET_IMAGE}"]
+    waitFor: [build-wallet]
+
+  # ── Deploy bridge to Cloud Run ─────────────────────────
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    id: deploy-bridge
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - fuseflash-bridge
+      - --image
+      - "${_BRIDGE_IMAGE}:${SHORT_SHA}"
+      - --region
+      - "${_REGION}"
+      - --platform
+      - managed
+      - --allow-unauthenticated
+    waitFor: [push-bridge]
+
+images:
+  - "${_NODE_IMAGE}:${SHORT_SHA}"
+  - "${_BRIDGE_IMAGE}:${SHORT_SHA}"
+  - "${_WALLET_IMAGE}:${SHORT_SHA}"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8

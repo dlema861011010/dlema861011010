@@ -1,0 +1,35 @@
+# ── FuseFlash Ember.js Smart Wallet ────────────────────────────────────────
+# Multi-stage: build with Node.js 20, serve with Nginx.
+
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Cache package install.
+COPY package.json package-lock.json* ./
+RUN npm ci --prefer-offline
+
+COPY . .
+ENV NODE_ENV=production
+RUN npm run build
+
+# ── Runtime stage (Nginx) ────────────────────────────────────────────────────
+FROM nginx:1.27-alpine
+
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# SPA routing: 404 → index.html
+RUN printf 'server {\n\
+  listen 80;\n\
+  root /usr/share/nginx/html;\n\
+  index index.html;\n\
+  location / {\n\
+    try_files $uri $uri/ /index.html;\n\
+  }\n\
+  gzip on;\n\
+  gzip_types text/plain text/css application/javascript application/json;\n\
+}\n' > /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

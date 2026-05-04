@@ -1,0 +1,57 @@
+<div class="send-tx card">
+  <h2 class="card__title">Send SPARK</h2>
+
+  {{#if this.txHash}}
+    <div class="send-tx__success">
+      <p>✅ Transaction sent!</p>
+      <a
+        href="https://explorer.fusespark.io/tx/{{this.txHash}}"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="tx-link"
+      >
+        {{this.txHash}}
+      </a>
+    </div>
+  {{/if}}
+
+  {{#if this.error}}
+    <div class="send-tx__error">⚠ {{this.error}}</div>
+  {{/if}}
+
+  <form class="send-tx__form" {{on "submit" (prevent-default this.send)}}>
+    <label class="field">
+      <span class="field__label">Recipient address</span>
+      <input
+        class="field__input"
+        type="text"
+        placeholder="0x…"
+        value={{this.recipient}}
+        {{on "input" this.updateRecipient}}
+        spellcheck="false"
+        autocomplete="off"
+      />
+    </label>
+
+    <label class="field">
+      <span class="field__label">Amount (SPARK)</span>
+      <input
+        class="field__input"
+        type="number"
+        placeholder="0.0"
+        min="0"
+        step="any"
+        value={{this.amount}}
+        {{on "input" this.updateAmount}}
+      />
+    </label>
+
+    <button
+      type="submit"
+      class="btn btn--primary btn--full"
+      disabled={{or this.isSending (not this.isValid)}}
+    >
+      {{#if this.isSending}}Sending…{{else}}Send{{/if}}
+    </button>
+  </form>
+</div>

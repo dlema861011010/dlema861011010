@@ -1,0 +1,50 @@
+<div class="wallet-connect">
+  {{#if this.web3.isConnected}}
+    <div class="wallet-status wallet-status--connected">
+      <div class="wallet-avatar">
+        <span class="wallet-dot" aria-hidden="true"></span>
+        <span class="wallet-chain-badge">FuseSpark</span>
+      </div>
+      <div class="wallet-info">
+        <span class="wallet-address" title={{this.web3.account}}>
+          {{this.web3.shortAddress}}
+        </span>
+        <span class="wallet-balance">{{this.web3.formattedBalance}}</span>
+        {{#unless this.web3.isCorrectChain}}
+          <span class="wallet-wrong-chain">⚠ Wrong network</span>
+        {{/unless}}
+      </div>
+      <div class="wallet-actions">
+        <a
+          href={{this.web3.explorerAddressUrl}}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn btn--ghost btn--sm"
+        >
+          Explorer ↗
+        </a>
+        <button type="button" class="btn btn--ghost btn--sm" {{on "click" this.disconnect}}>
+          Disconnect
+        </button>
+      </div>
+    </div>
+  {{else}}
+    <div class="wallet-status wallet-status--disconnected">
+      {{#if this.web3.error}}
+        <p class="wallet-error">{{this.web3.error}}</p>
+      {{/if}}
+      <button
+        type="button"
+        class="btn btn--primary"
+        disabled={{this.web3.isConnecting}}
+        {{on "click" this.connect}}
+      >
+        {{#if this.web3.isConnecting}}
+          Connecting…
+        {{else}}
+          Connect Wallet
+        {{/if}}
+      </button>
+    </div>
+  {{/if}}
+</div>

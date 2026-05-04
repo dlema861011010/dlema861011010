@@ -1,0 +1,28 @@
+{{! Main application layout }}
+<header class="app-header">
+  <div class="app-header__brand">
+    <span class="app-header__logo" aria-hidden="true">⚡</span>
+    <span class="app-header__name">FuseFlash Wallet</span>
+    <span class="app-header__network">FuseSpark Testnet</span>
+  </div>
+  <nav class="app-nav">
+    <LinkTo @route="wallet" class="app-nav__link">Wallet</LinkTo>
+    <LinkTo @route="explorer" class="app-nav__link">Explorer</LinkTo>
+    <LinkTo @route="bridge" class="app-nav__link">Bridge</LinkTo>
+  </nav>
+  <div class="app-header__wallet">
+    <WalletConnect />
+  </div>
+</header>
+
+<main class="app-main">
+  {{outlet}}
+</main>
+
+<footer class="app-footer">
+  <p>
+    FuseFlash · FuseSpark Testnet (Chain ID 123) ·
+    <a href="https://explorer.fusespark.io" target="_blank" rel="noopener noreferrer">Blockscout Explorer</a>
+    · Built with ❤ in Go, Python &amp; Ember.js
+  </p>
+</footer>

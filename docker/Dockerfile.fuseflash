@@ -1,0 +1,25 @@
+# ── FuseFlash Go P2P Node ───────────────────────────────────────────────────
+# Multi-stage build: compile on golang:1.21-alpine, run on scratch.
+# Image size: ~8 MB final.
+
+FROM golang:1.21-alpine AS builder
+
+WORKDIR /src
+
+# Cache deps before copying source.
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /fuseflash-node ./cmd/node
+
+# ── Runtime stage ────────────────────────────────────────────────────────────
+FROM alpine:3.20
+
+RUN apk add --no-cache ca-certificates netcat-openbsd
+
+COPY --from=builder /fuseflash-node /usr/local/bin/fuseflash-node
+
+EXPOSE 7777
+
+ENTRYPOINT ["fuseflash-node"]

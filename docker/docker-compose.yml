@@ -1,0 +1,87 @@
+# FuseFlash full-stack — Docker Compose
+# Works with Docker Desktop (including Gordon AI assistant).
+# Services: fuseflash-node (Go P2P), smart-wallet (Ember.js), bridge (Python/FastAPI)
+#
+# Usage:
+#   docker compose up --build
+#   docker compose up fuseflash-node   # Go P2P node only
+#   docker compose up bridge            # Python bridge only
+
+version: "3.9"
+
+networks:
+  fuseflash:
+    driver: bridge
+
+volumes:
+  node-data:
+
+services:
+  # ── Go P2P Node ──────────────────────────────────────────
+  fuseflash-node:
+    build:
+      context: ./fuseflash
+      dockerfile: ../docker/Dockerfile.fuseflash
+    image: fuseflash-node:latest
+    container_name: fuseflash-node
+    restart: unless-stopped
+    ports:
+      - "7777:7777"
+    environment:
+      FUSEFLASH_LISTEN: ":7777"
+      FUSEFLASH_PEERS: ""          # set to comma-separated peer addrs to bootstrap
+      # FUSEFLASH_PRIVATE_KEY: ""  # inject via .env or secret
+    volumes:
+      - node-data:/data
+    networks:
+      - fuseflash
+    labels:
+      com.docker.gordon.description: "FuseFlash P2P node — Go TCP peer (FuseSpark testnet)"
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "7777"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── Python Bridge ────────────────────────────────────────
+  bridge:
+    build:
+      context: ./bridge
+      dockerfile: ../docker/Dockerfile.bridge
+    image: fuseflash-bridge:latest
+    container_name: fuseflash-bridge
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      FUSEFLASH_RPC_URL: "https://rpc.fusespark.io"
+      # FUSEFLASH_PRIVATE_KEY: ""  # inject via .env or secret
+    networks:
+      - fuseflash
+    labels:
+      com.docker.gordon.description: "FuseFlash bridge — FastAPI + Web3.py + Blockscout"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── Ember.js Smart Wallet ────────────────────────────────
+  smart-wallet:
+    build:
+      context: ./smart-wallet
+      dockerfile: ../docker/Dockerfile.smartwallet
+    image: fuseflash-wallet:latest
+    container_name: fuseflash-wallet
+    restart: unless-stopped
+    ports:
+      - "4200:80"
+    depends_on:
+      bridge:
+        condition: service_healthy
+    networks:
+      - fuseflash
+    labels:
+      com.docker.gordon.description: "FuseFlash smart wallet — Ember.js SPA (Nginx)"
+    environment:
+      BRIDGE_URL: "http://bridge:8000"

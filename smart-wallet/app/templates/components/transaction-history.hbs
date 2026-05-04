@@ -1,0 +1,56 @@
+<div class="tx-history card">
+  <div class="card__header">
+    <h2 class="card__title">Transaction History</h2>
+    <button type="button" class="btn btn--ghost btn--sm" {{on "click" this.load}}>↺ Refresh</button>
+  </div>
+
+  {{#if this.isLoading}}
+    <div class="tx-history__loading">Loading…</div>
+  {{else if this.error}}
+    <div class="tx-history__error">⚠ {{this.error}}</div>
+  {{else if (eq this.transactions.length 0)}}
+    <div class="tx-history__empty">No transactions found.</div>
+  {{else}}
+    <table class="tx-table">
+      <thead>
+        <tr>
+          <th>Hash</th>
+          <th>Block</th>
+          <th>From</th>
+          <th>To</th>
+          <th>Value</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each this.transactions as |tx|}}
+          <tr class="tx-table__row">
+            <td>
+              <a
+                href={{this.txUrl tx.hash}}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="tx-link"
+                title={{tx.hash}}
+              >
+                {{this.shortHash tx.hash}}
+              </a>
+            </td>
+            <td>{{tx.block}}</td>
+            <td class="tx-addr" title={{tx.from.hash}}>{{tx.from.hash}}</td>
+            <td class="tx-addr" title={{tx.to.hash}}>{{tx.to.hash}}</td>
+            <td>{{tx.value}} wei</td>
+            <td>
+              <span class="tx-status tx-status--{{tx.status}}">{{tx.status}}</span>
+            </td>
+          </tr>
+        {{/each}}
+      </tbody>
+    </table>
+    <div class="tx-history__pagination">
+      <button type="button" class="btn btn--ghost btn--sm" disabled={{eq this.page 1}} {{on "click" this.prevPage}}>← Prev</button>
+      <span>Page {{this.page}}</span>
+      <button type="button" class="btn btn--ghost btn--sm" {{on "click" this.nextPage}}>Next →</button>
+    </div>
+  {{/if}}
+</div>
