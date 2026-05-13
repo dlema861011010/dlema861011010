@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FuseFlash ⚡ — Tap-and-Go Web3 Payments</title>
+  <meta name="description" content="FuseFlash — lightning-fast P2P payments powered by Go, Solidity, ethers.js, and the world's best open-source ecosystem." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Reset & base ───────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:         #080b14;
+      --surface:    #0e1220;
+      --surface2:   #141826;
+      --border:     rgba(255,255,255,.07);
+      --orange:     #ff6b00;
+      --amber:      #ffaa00;
+      --pink:       #e040fb;
+      --blue:       #2979ff;
+      --cyan:       #00e5ff;
+      --green:      #00e676;
+      --white:      #f0f4ff;
+      --muted:      #8892a4;
+      --radius:     16px;
+      --glow-o:     0 0 40px rgba(255,107,0,.35);
+      --glow-b:     0 0 40px rgba(41,121,255,.35);
+      --glow-p:     0 0 40px rgba(224,64,251,.35);
+      --font:       'Inter', sans-serif;
+      --mono:       'JetBrains Mono', monospace;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--white);
+      font-family: var(--font);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    a { color: inherit; text-decoration: none; }
+    img { display: block; max-width: 100%; }
+
+    /* ── Noise texture overlay ──────────────────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");
+      background-size: 256px;
+      opacity: .6;
+    }
+
+    /* ── Aurora background ──────────────────────────────────────────────────── */
+    .aurora {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+    }
+    .aurora span {
+      position: absolute; border-radius: 50%; filter: blur(120px); opacity: .18;
+      animation: drift 18s ease-in-out infinite alternate;
+    }
+    .aurora span:nth-child(1) { width: 700px; height: 700px; background: var(--orange); top: -200px; left: -100px; animation-duration: 20s; }
+    .aurora span:nth-child(2) { width: 600px; height: 600px; background: var(--blue);   top: 40%;  right: -150px; animation-duration: 25s; animation-delay: -5s; }
+    .aurora span:nth-child(3) { width: 500px; height: 500px; background: var(--pink);   bottom: -100px; left: 30%; animation-duration: 22s; animation-delay: -10s; }
+    .aurora span:nth-child(4) { width: 400px; height: 400px; background: var(--cyan);   top: 60%; left: 10%; animation-duration: 28s; animation-delay: -3s; }
+    @keyframes drift {
+      from { transform: translate(0, 0) scale(1); }
+      to   { transform: translate(60px, 40px) scale(1.15); }
+    }
+
+    /* ── Layout helpers ─────────────────────────────────────────────────────── */
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+    section { padding: 100px 0; }
+
+    /* ── Gradient text ──────────────────────────────────────────────────────── */
+    .grad-orange { background: linear-gradient(135deg, var(--orange), var(--amber)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .grad-blue   { background: linear-gradient(135deg, var(--blue), var(--cyan));   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .grad-pink   { background: linear-gradient(135deg, var(--pink), #ff80ab);       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .grad-full   { background: linear-gradient(135deg, var(--orange), var(--pink), var(--blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+    /* ── Pill badge ─────────────────────────────────────────────────────────── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 100px;
+      font-size: .75rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+      border: 1px solid rgba(255,107,0,.4);
+      background: rgba(255,107,0,.1);
+      color: var(--amber);
+      margin-bottom: 20px;
+    }
+    .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); animation: pulse-dot 1.5s ease-in-out infinite; }
+    @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.7)} }
+
+    /* ── Navbar ─────────────────────────────────────────────────────────────── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      padding: 16px 0;
+      background: rgba(8,11,20,.7);
+      backdrop-filter: blur(20px) saturate(1.6);
+      border-bottom: 1px solid var(--border);
+      transition: all .3s;
+    }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.25rem; }
+    .logo-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--orange), var(--amber));
+      display: grid; place-items: center; font-size: 1.1rem;
+      box-shadow: var(--glow-o);
+    }
+    .nav-links { display: flex; gap: 32px; font-size: .9rem; font-weight: 500; }
+    .nav-links a { color: var(--muted); transition: color .2s; }
+    .nav-links a:hover { color: var(--white); }
+    .nav-cta {
+      display: flex; gap: 12px; align-items: center;
+    }
+
+    /* ── Buttons ────────────────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 12px 24px; border-radius: 12px;
+      font-weight: 700; font-size: .9rem; cursor: pointer; border: none;
+      transition: all .2s; position: relative; overflow: hidden;
+      white-space: nowrap;
+    }
+    .btn::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(rgba(255,255,255,.12), transparent);
+      opacity: 0; transition: opacity .2s;
+    }
+    .btn:hover::after { opacity: 1; }
+    .btn:active { transform: scale(.97); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--orange), #ff9500);
+      color: #000; box-shadow: var(--glow-o);
+    }
+    .btn-primary:hover { box-shadow: 0 0 60px rgba(255,107,0,.5); transform: translateY(-1px); }
+
+    .btn-ghost {
+      background: transparent; color: var(--white);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { border-color: rgba(255,255,255,.25); background: rgba(255,255,255,.05); }
+
+    .btn-blue {
+      background: linear-gradient(135deg, var(--blue), #0052d4);
+      color: #fff; box-shadow: var(--glow-b);
+    }
+    .btn-blue:hover { box-shadow: 0 0 60px rgba(41,121,255,.5); transform: translateY(-1px); }
+
+    .btn-pink {
+      background: linear-gradient(135deg, var(--pink), #aa00ff);
+      color: #fff; box-shadow: var(--glow-p);
+    }
+    .btn-pink:hover { box-shadow: 0 0 60px rgba(224,64,251,.5); transform: translateY(-1px); }
+
+    .btn-green {
+      background: linear-gradient(135deg, var(--green), #00bfa5);
+      color: #000; box-shadow: 0 0 40px rgba(0,230,118,.35);
+    }
+    .btn-green:hover { box-shadow: 0 0 60px rgba(0,230,118,.5); transform: translateY(-1px); }
+
+    .btn-large { padding: 16px 36px; font-size: 1rem; border-radius: 14px; }
+
+    /* emoji buttons */
+    .emoji-btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 14px 28px; border-radius: 14px;
+      font-weight: 700; font-size: 1rem; cursor: pointer; border: 1px solid var(--border);
+      background: var(--surface2); color: var(--white);
+      transition: all .25s;
+      position: relative; overflow: hidden;
+    }
+    .emoji-btn .em { font-size: 1.3rem; transition: transform .25s; }
+    .emoji-btn:hover .em { transform: scale(1.3) rotate(-5deg); }
+    .emoji-btn:hover { border-color: rgba(255,255,255,.2); background: rgba(255,255,255,.08); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,.4); }
+    .emoji-btn:active { transform: scale(.96); }
+
+    /* ── Hero ───────────────────────────────────────────────────────────────── */
+    #hero {
+      min-height: 100vh; display: flex; align-items: center; padding-top: 80px;
+    }
+    .hero-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; width: 100%; }
+    .hero-eyebrow { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+    .hero-title {
+      font-size: clamp(2.8rem, 6vw, 5rem);
+      font-weight: 900; line-height: 1.05; letter-spacing: -.03em;
+      margin-bottom: 24px;
+    }
+    .hero-sub {
+      font-size: 1.15rem; color: var(--muted); max-width: 480px;
+      margin-bottom: 40px; line-height: 1.7;
+    }
+    .hero-btns { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 48px; }
+
+    .hero-stats { display: flex; gap: 40px; }
+    .stat-item { }
+    .stat-num { font-size: 1.8rem; font-weight: 800; line-height: 1; }
+    .stat-label { font-size: .8rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: .06em; }
+
+    /* Hero visual — code terminal */
+    .terminal {
+      background: #0a0d16; border: 1px solid var(--border); border-radius: var(--radius);
+      overflow: hidden; box-shadow: 0 40px 100px rgba(0,0,0,.6);
+      position: relative;
+    }
+    .terminal::before {
+      content: ''; position: absolute; inset: -1px; border-radius: inherit;
+      background: linear-gradient(135deg, rgba(255,107,0,.3), rgba(41,121,255,.2), rgba(224,64,251,.2));
+      z-index: -1;
+    }
+    .term-bar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 16px;
+      background: rgba(255,255,255,.04);
+      border-bottom: 1px solid var(--border);
+    }
+    .term-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .term-dot:nth-child(1) { background: #ff5f56; }
+    .term-dot:nth-child(2) { background: #febc2e; }
+    .term-dot:nth-child(3) { background: #28c841; }
+    .term-title { margin-left: auto; margin-right: auto; font-size: .75rem; color: var(--muted); font-family: var(--mono); }
+    .term-body { padding: 24px; font-family: var(--mono); font-size: .82rem; line-height: 1.9; }
+    .tc-muted  { color: #4a5568; }
+    .tc-green  { color: var(--green); }
+    .tc-orange { color: var(--orange); }
+    .tc-blue   { color: #79b8ff; }
+    .tc-pink   { color: #f69eff; }
+    .tc-amber  { color: var(--amber); }
+    .tc-white  { color: var(--white); }
+    .tc-cyan   { color: var(--cyan); }
+    .cursor { display: inline-block; width: 8px; height: 1.1em; background: var(--cyan); vertical-align: middle; animation: blink .9s step-end infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* floating badges on terminal */
+    .term-float {
+      position: absolute; border-radius: 10px; padding: 8px 14px;
+      font-size: .78rem; font-weight: 700; backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,.12); display: flex; align-items: center; gap: 8px;
+      animation: float 4s ease-in-out infinite alternate;
+    }
+    .term-float.tl { top: -18px; left: -24px; background: rgba(41,121,255,.2); color: var(--cyan); animation-delay: -1s; }
+    .term-float.br { bottom: -18px; right: -24px; background: rgba(0,230,118,.15); color: var(--green); }
+    .term-float.tr { top: 40%; right: -36px; background: rgba(255,107,0,.2); color: var(--amber); animation-delay: -2s; }
+    @keyframes float { from{transform:translateY(0)} to{transform:translateY(-8px)} }
+
+    /* ── Section header ─────────────────────────────────────────────────────── */
+    .sec-header { text-align: center; margin-bottom: 64px; }
+    .sec-title { font-size: clamp(2rem, 4vw, 3rem); font-weight: 900; letter-spacing: -.03em; line-height: 1.1; margin-bottom: 16px; }
+    .sec-sub { font-size: 1.05rem; color: var(--muted); max-width: 540px; margin: 0 auto; }
+
+    /* ── Logos / partners ───────────────────────────────────────────────────── */
+    #partners { padding: 60px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .partner-label { text-align: center; font-size: .8rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 36px; }
+    .logos-scroll-wrap { overflow: hidden; position: relative; }
+    .logos-scroll-wrap::before,
+    .logos-scroll-wrap::after {
+      content: ''; position: absolute; top: 0; bottom: 0; width: 120px; z-index: 2; pointer-events: none;
+    }
+    .logos-scroll-wrap::before { left: 0; background: linear-gradient(to right, var(--bg), transparent); }
+    .logos-scroll-wrap::after  { right: 0; background: linear-gradient(to left,  var(--bg), transparent); }
+    .logos-track {
+      display: flex; gap: 48px; align-items: center;
+      animation: scroll-logos 30s linear infinite;
+      width: max-content;
+    }
+    .logos-track:hover { animation-play-state: paused; }
+    @keyframes scroll-logos {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+    .logo-chip {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 12px 20px;
+      font-size: .85rem; font-weight: 600; color: var(--muted);
+      transition: all .2s; cursor: default; white-space: nowrap;
+      filter: grayscale(1); opacity: .6;
+    }
+    .logo-chip:hover { filter: none; opacity: 1; color: var(--white); border-color: rgba(255,255,255,.2); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.3); }
+    .logo-chip svg, .logo-chip img { width: 22px; height: 22px; object-fit: contain; flex-shrink: 0; }
+
+    /* ── Feature cards ──────────────────────────────────────────────────────── */
+    .cards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 32px; position: relative; overflow: hidden;
+      transition: all .3s; cursor: default;
+    }
+    .card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      opacity: 0; transition: opacity .3s;
+    }
+    .card:hover { transform: translateY(-4px); border-color: rgba(255,255,255,.14); box-shadow: 0 20px 60px rgba(0,0,0,.4); }
+    .card:hover::before { opacity: 1; }
+    .card.c-orange::before { background: linear-gradient(90deg, var(--orange), var(--amber)); }
+    .card.c-blue::before   { background: linear-gradient(90deg, var(--blue), var(--cyan)); }
+    .card.c-pink::before   { background: linear-gradient(90deg, var(--pink), #ff80ab); }
+    .card.c-green::before  { background: linear-gradient(90deg, var(--green), #00bfa5); }
+    .card.c-amber::before  { background: linear-gradient(90deg, var(--amber), var(--orange)); }
+    .card.c-cyan::before   { background: linear-gradient(90deg, var(--cyan), var(--blue)); }
+
+    .card-icon {
+      width: 52px; height: 52px; border-radius: 14px;
+      display: grid; place-items: center; font-size: 1.5rem;
+      margin-bottom: 20px;
+    }
+    .card-icon.ico-orange { background: rgba(255,107,0,.15); }
+    .card-icon.ico-blue   { background: rgba(41,121,255,.15); }
+    .card-icon.ico-pink   { background: rgba(224,64,251,.15); }
+    .card-icon.ico-green  { background: rgba(0,230,118,.15); }
+    .card-icon.ico-amber  { background: rgba(255,170,0,.15); }
+    .card-icon.ico-cyan   { background: rgba(0,229,255,.15); }
+
+    .card-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 10px; }
+    .card-desc { font-size: .9rem; color: var(--muted); line-height: 1.65; }
+    .card-tag {
+      display: inline-block; margin-top: 16px; padding: 4px 10px; border-radius: 6px;
+      font-size: .72rem; font-weight: 600; font-family: var(--mono);
+      background: rgba(255,255,255,.06); color: var(--muted);
+    }
+
+    /* ── How it works ───────────────────────────────────────────────────────── */
+    #how { background: var(--surface); }
+    .timeline { position: relative; max-width: 720px; margin: 0 auto; }
+    .timeline::before {
+      content: ''; position: absolute; left: 32px; top: 0; bottom: 0; width: 2px;
+      background: linear-gradient(to bottom, var(--orange), var(--pink), var(--blue));
+    }
+    .tl-item { display: flex; gap: 32px; margin-bottom: 48px; position: relative; }
+    .tl-num {
+      width: 64px; height: 64px; flex-shrink: 0; border-radius: 50%;
+      display: grid; place-items: center; font-size: 1.4rem; font-weight: 900;
+      border: 2px solid var(--border); background: var(--bg);
+      position: relative; z-index: 1;
+      transition: all .3s;
+    }
+    .tl-item:hover .tl-num { border-color: var(--orange); box-shadow: var(--glow-o); }
+    .tl-body { padding-top: 14px; }
+    .tl-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; }
+    .tl-desc { font-size: .9rem; color: var(--muted); line-height: 1.65; }
+
+    /* ── Emoji CTA buttons showcase ─────────────────────────────────────────── */
+    #cta-showcase { background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%); }
+    .emoji-grid { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; margin-top: 48px; }
+
+    /* ── Stack section ──────────────────────────────────────────────────────── */
+    .stack-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .stack-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 24px 20px; text-align: center;
+      transition: all .25s;
+    }
+    .stack-card:hover { border-color: rgba(255,255,255,.18); transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,.35); }
+    .stack-card .sc-icon { font-size: 2.2rem; margin-bottom: 12px; }
+    .stack-card .sc-name { font-weight: 700; font-size: .95rem; margin-bottom: 6px; }
+    .stack-card .sc-desc { font-size: .78rem; color: var(--muted); line-height: 1.5; }
+
+    /* ── Testimonial / quote ────────────────────────────────────────────────── */
+    .quote-block {
+      max-width: 760px; margin: 0 auto;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+      padding: 48px; text-align: center; position: relative;
+    }
+    .quote-block::before {
+      content: '"'; position: absolute; top: 16px; left: 32px;
+      font-size: 8rem; line-height: 1; color: rgba(255,107,0,.12);
+      font-family: Georgia, serif; font-weight: 900;
+    }
+    .quote-text { font-size: 1.25rem; line-height: 1.7; font-weight: 500; margin-bottom: 24px; }
+    .quote-author { font-size: .85rem; color: var(--muted); }
+    .quote-author strong { color: var(--amber); }
+
+    /* ── Final CTA ──────────────────────────────────────────────────────────── */
+    #final-cta {
+      text-align: center;
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255,107,0,.12), transparent 70%);
+    }
+    .final-title { font-size: clamp(2.4rem, 5vw, 4rem); font-weight: 900; letter-spacing: -.03em; margin-bottom: 20px; }
+    .final-sub { font-size: 1.1rem; color: var(--muted); max-width: 500px; margin: 0 auto 44px; }
+    .final-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+    /* ── Footer ─────────────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border); padding: 48px 0;
+      background: var(--surface);
+    }
+    .footer-inner { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; }
+    .footer-brand .logo { margin-bottom: 12px; }
+    .footer-brand p { font-size: .85rem; color: var(--muted); max-width: 280px; line-height: 1.6; }
+    .footer-col h4 { font-size: .85rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 16px; color: var(--white); }
+    .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .footer-col ul li a { font-size: .85rem; color: var(--muted); transition: color .2s; }
+    .footer-col ul li a:hover { color: var(--white); }
+    .footer-bottom { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .footer-bottom p { font-size: .8rem; color: var(--muted); }
+    .footer-socials { display: flex; gap: 12px; }
+    .social-btn {
+      width: 36px; height: 36px; border-radius: 8px;
+      border: 1px solid var(--border); display: grid; place-items: center;
+      font-size: 1rem; transition: all .2s; color: var(--muted);
+    }
+    .social-btn:hover { border-color: rgba(255,255,255,.2); color: var(--white); background: rgba(255,255,255,.06); }
+
+    /* ── Scrollbar ──────────────────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: rgba(255,107,0,.4); border-radius: 3px; }
+
+    /* ── Animations ─────────────────────────────────────────────────────────── */
+    .fade-up {
+      opacity: 0; transform: translateY(30px);
+      transition: opacity .7s ease, transform .7s ease;
+    }
+    .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+    /* ── Responsive ─────────────────────────────────────────────────────────── */
+    @media (max-width: 960px) {
+      .hero-inner { grid-template-columns: 1fr; }
+      .hero-visual { display: none; }
+      .cards-grid { grid-template-columns: repeat(2, 1fr); }
+      .stack-grid { grid-template-columns: repeat(2, 1fr); }
+      .footer-inner { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .cards-grid { grid-template-columns: 1fr; }
+      .stack-grid { grid-template-columns: 1fr; }
+      .footer-inner { grid-template-columns: 1fr; }
+      .hero-stats { flex-direction: column; gap: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Aurora background -->
+<div class="aurora" aria-hidden="true">
+  <span></span><span></span><span></span><span></span>
+</div>
+
+<!-- ── NAVBAR ────────────────────────────────────────────────────────────── -->
+<nav>
+  <div class="container nav-inner">
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <span>Fuse<span class="grad-orange">Flash</span></span>
+    </div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#stack">Stack</a>
+      <a href="#partners">Partners</a>
+      <a href="https://github.com/dlema861011010/dlema861011010" target="_blank" rel="noopener">GitHub</a>
+    </div>
+    <div class="nav-cta">
+      <a href="https://github.com/dlema861011010/dlema861011010" target="_blank" rel="noopener" class="btn btn-ghost">⭐ Star</a>
+      <a href="#final-cta" class="btn btn-primary">Launch App ⚡</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ── HERO ──────────────────────────────────────────────────────────────── -->
+<section id="hero">
+  <div class="container hero-inner">
+
+    <!-- Left content -->
+    <div class="hero-content fade-up">
+      <div class="hero-eyebrow">
+        <span class="badge"><span class="dot"></span>Live on Mainnet</span>
+      </div>
+      <h1 class="hero-title">
+        The <span class="grad-orange">fastest</span><br />
+        Web3 payments<br />
+        <span class="grad-full">platform ever.</span>
+      </h1>
+      <p class="hero-sub">
+        FuseFlash combines a Go P2P node, Solidity smart contracts, and a
+        Node.js signing service to deliver <strong>Tap-and-Go NFC payments</strong>
+        backed by on-chain ECDSA verification. No bank. No middleman. Just math.
+      </p>
+      <div class="hero-btns">
+        <a href="#final-cta" class="btn btn-primary btn-large">⚡ Launch App</a>
+        <a href="https://github.com/dlema861011010/dlema861011010" target="_blank" rel="noopener" class="btn btn-ghost btn-large">
+          <!-- GitHub logo SVG inline -->
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+          View on GitHub
+        </a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-item">
+          <div class="stat-num grad-orange">1B</div>
+          <div class="stat-label">FLSH Supply</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num grad-blue">&lt;2s</div>
+          <div class="stat-label">Tap latency</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num grad-pink">100%</div>
+          <div class="stat-label">Open Source</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right — terminal -->
+    <div class="hero-visual fade-up" style="transition-delay:.2s; position:relative; padding: 24px;">
+      <div class="term-float tl">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+        go test ./...
+      </div>
+      <div class="term-float br">✅ All tests passed</div>
+      <div class="term-float tr">⚡ Block #1,048,576</div>
+      <div class="terminal">
+        <div class="term-bar">
+          <div class="term-dot"></div><div class="term-dot"></div><div class="term-dot"></div>
+          <span class="term-title">fuseflash — p2p node</span>
+        </div>
+        <div class="term-body">
+          <div><span class="tc-muted">$</span> <span class="tc-green">cd</span> fuseflash <span class="tc-muted">&amp;&amp;</span> <span class="tc-green">go</span> run .</div>
+          <div>&nbsp;</div>
+          <div><span class="tc-muted">[INFO]</span> <span class="tc-cyan">NodeID</span> <span class="tc-white">generated</span></div>
+          <div><span class="tc-muted">  →</span> <span class="tc-amber">Alpha Bravo Charlie Delta…</span></div>
+          <div><span class="tc-muted">[INFO]</span> <span class="tc-cyan">P2P listener</span> <span class="tc-white">:9000</span></div>
+          <div><span class="tc-muted">[INFO]</span> <span class="tc-green">Peer connected</span> <span class="tc-muted">192.168.1.42:9000</span></div>
+          <div><span class="tc-muted">[SYNC]</span> <span class="tc-blue">Accepted</span> <span class="tc-white">12 headers</span> <span class="tc-muted">→ height 1048576</span></div>
+          <div>&nbsp;</div>
+          <div><span class="tc-muted">$</span> <span class="tc-green">curl</span> -X POST :3000/tap/sign \</div>
+          <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="tc-pink">-d</span> <span class="tc-amber">'{"from":"0xABCD…","to":"0x1234…","amount":"500","nonce":"0xdeadbeef…"}'</span></div>
+          <div>&nbsp;</div>
+          <div><span class="tc-muted">{</span></div>
+          <div>&nbsp;&nbsp;<span class="tc-blue">"signature"</span><span class="tc-muted">:</span> <span class="tc-amber">"0x3d7f…c902"</span><span class="tc-muted">,</span></div>
+          <div>&nbsp;&nbsp;<span class="tc-blue">"messageHash"</span><span class="tc-muted">:</span> <span class="tc-amber">"0xba5k…af1e"</span></div>
+          <div><span class="tc-muted">}</span></div>
+          <div>&nbsp;</div>
+          <div><span class="tc-muted">$</span> <span class="cursor"></span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── PARTNERS / LOGOS ───────────────────────────────────────────────────── -->
+<section id="partners">
+  <div class="container">
+    <p class="partner-label">Powered by the world's best open-source ecosystem</p>
+    <div class="logos-scroll-wrap">
+      <div class="logos-track">
+        <!-- Set 1 -->
+        <div class="logo-chip">
+          <!-- Alpine Linux -->
+          <svg width="22" height="22" viewBox="0 0 100 100" fill="none"><polygon points="50,5 95,85 5,85" fill="#0d597f"/><polygon points="50,20 82,75 18,75" fill="#fff"/></svg>
+          Alpine Linux
+        </div>
+        <div class="logo-chip">
+          <!-- GitHub -->
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="#f0f6fc"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+          GitHub
+        </div>
+        <div class="logo-chip">
+          <!-- Google -->
+          <svg width="22" height="22" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+          Google
+        </div>
+        <div class="logo-chip">
+          <!-- Microsoft -->
+          <svg width="22" height="22" viewBox="0 0 23 23"><rect x="1" y="1" width="10" height="10" fill="#f25022"/><rect x="12" y="1" width="10" height="10" fill="#7fba00"/><rect x="1" y="12" width="10" height="10" fill="#00a4ef"/><rect x="12" y="12" width="10" height="10" fill="#ffb900"/></svg>
+          Microsoft
+        </div>
+        <div class="logo-chip">
+          <!-- NVIDIA -->
+          <svg width="22" height="22" viewBox="0 0 60 60" fill="none"><rect width="60" height="60" rx="8" fill="#76b900"/><path d="M10 38V22h5l7 10.5V22h5v16h-5L15 27.5V38H10zm22 0V22h5l5 8 5-8h5v16h-5V29l-5 7-5-7v9h-5z" fill="#fff"/></svg>
+          NVIDIA
+        </div>
+        <div class="logo-chip">
+          <!-- Motorola -->
+          <svg width="22" height="22" viewBox="0 0 60 60" fill="none"><circle cx="30" cy="30" r="28" fill="#e2001a"/><text x="50%" y="56%" text-anchor="middle" font-size="22" font-weight="900" fill="#fff" font-family="Arial">M</text></svg>
+          Motorola
+        </div>
+        <div class="logo-chip">
+          <!-- Slack -->
+          <svg width="22" height="22" viewBox="0 0 60 60" fill="none">
+            <rect x="5" y="20" width="10" height="20" rx="5" fill="#e01e5a"/>
+            <rect x="5" y="35" width="20" height="10" rx="5" fill="#e01e5a"/>
+            <rect x="22" y="5" width="10" height="20" rx="5" fill="#36c5f0"/>
+            <rect x="5" y="5" width="20" height="10" rx="5" fill="#36c5f0"/>
+            <rect x="45" y="20" width="10" height="20" rx="5" fill="#ecb22e"/>
+            <rect x="35" y="35" width="20" height="10" rx="5" fill="#ecb22e"/>
+            <rect x="22" y="35" width="10" height="20" rx="5" fill="#2eb67d"/>
+            <rect x="35" y="5" width="20" height="10" rx="5" fill="#2eb67d"/>
+          </svg>
+          Slack
+        </div>
+        <div class="logo-chip">
+          <!-- Postman -->
+          <svg width="22" height="22" viewBox="0 0 60 60" fill="none"><circle cx="30" cy="30" r="28" fill="#ff6c37"/><path d="M30 14a16 16 0 100 32A16 16 0 0030 14zm0 8l8 8-8 8-8-8 8-8z" fill="#fff" opacity=".9"/></svg>
+          Postman
+        </div>
+        <div class="logo-chip">
+          <!-- VS Code -->
+          <svg width="22" height="22" viewBox="0 0 60 60" fill="none"><path d="M44 6L23 29l-9-8L6 24v12l8 3 9-8 21 23 9-5V11L44 6z" fill="#007acc"/><path d="M44 6v48l9-5V11L44 6zM6 24l8 3v6L6 36V24z" fill="#1ba1e2" opacity=".7"/></svg>
+          VS Code
+        </div>
+        <div class="logo-chip">
+          <!-- PayPal -->
+          <svg width="22" height="22" viewBox="0 0 60 60" fill="none"><circle cx="30" cy="30" r="28" fill="#003087"/><text x="50%" y="60%" text-anchor="middle" font-size="18" font-weight="900" fill="#009cde" font-family="Arial">PP</text></svg>
+          PayPal
+        </div>
+        <div class="logo-chip">
+          <!-- Stripe -->
+          <svg width="22" height="22" viewBox="0 0 60 60" fill="none"><rect width="60" height="60" rx="8" fill="#6772e5"/><path d="M28 20c0-1.7 1.4-3 3-3s5 1 5 4c0 3.5-4 4.5-4 4.5H23v4h9s5 1.5 5 5.5c0 4-3.5 6-7 6-3.5 0-5-2-5-2" stroke="#fff" stroke-width="3" fill="none"/></svg>
+          Stripe
+        </div>
+        <div class="logo-chip">
+          <!-- Web3 -->
+          <svg width="22" height="22" viewBox="0 0 60 60" fill="none"><polygon points="30,4 56,18 56,42 30,56 4,42 4,18" fill="none" stroke="#f16822" stroke-width="3"/><text x="50%" y="60%" text-anchor="middle" font-size="16" font-weight="900" fill="#f16822" font-family="Arial">W3</text></svg>
+          Web3
+        </div>
+        <div class="logo-chip">
+          <!-- ethers.js -->
+          <svg width="22" height="22" viewBox="0 0 60 60" fill="none"><polygon points="30,4 56,30 30,56 4,30" fill="#8c8c8c" opacity=".5"/><polygon points="30,10 50,30 30,50 10,30" fill="#3c3c3c"/><polygon points="30,18 44,30 30,42 16,30" fill="#627eea"/></svg>
+          ethers.js
+        </div>
+        <!-- Duplicate set for infinite scroll -->
+        <div class="logo-chip">
+          <svg width="22" height="22" viewBox="0 0 100 100" fill="none"><polygon points="50,5 95,85 5,85" fill="#0d597f"/><polygon points="50,20 82,75 18,75" fill="#fff"/></svg>
+          Alpine Linux
+        </div>
+        <div class="logo-chip">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="#f0f6fc"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+          GitHub
+        </div>
+        <div class="logo-chip">
+          <svg width="22" height="22" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+          Google
+        </div>
+        <div class="logo-chip">
+          <svg width="22" height="22" viewBox="0 0 23 23"><rect x="1" y="1" width="10" height="10" fill="#f25022"/><rect x="12" y="1" width="10" height="10" fill="#7fba00"/><rect x="1" y="12" width="10" height="10" fill="#00a4ef"/><rect x="12" y="12" width="10" height="10" fill="#ffb900"/></svg>
+          Microsoft
+        </div>
+        <div class="logo-chip">
+          <svg width="22" height="22" viewBox="0 0 60 60" fill="none"><rect width="60" height="60" rx="8" fill="#76b900"/><path d="M10 38V22h5l7 10.5V22h5v16h-5L15 27.5V38H10zm22 0V22h5l5 8 5-8h5v16h-5V29l-5 7-5-7v9h-5z" fill="#fff"/></svg>
+          NVIDIA
+        </div>
+        <div class="logo-chip">
+          <svg width="22" height="22" viewBox="0 0 60 60" fill="none"><circle cx="30" cy="30" r="28" fill="#e2001a"/><text x="50%" y="56%" text-anchor="middle" font-size="22" font-weight="900" fill="#fff" font-family="Arial">M</text></svg>
+          Motorola
+        </div>
+        <div class="logo-chip">
+          <svg width="22" height="22" viewBox="0 0 60 60" fill="none">
+            <rect x="5" y="20" width="10" height="20" rx="5" fill="#e01e5a"/>
+            <rect x="5" y="35" width="20" height="10" rx="5" fill="#e01e5a"/>
+            <rect x="22" y="5" width="10" height="20" rx="5" fill="#36c5f0"/>
+            <rect x="5" y="5" width="20" height="10" rx="5" fill="#36c5f0"/>
+            <rect x="45" y="20" width="10" height="20" rx="5" fill="#ecb22e"/>
+            <rect x="35" y="35" width="20" height="10" rx="5" fill="#ecb22e"/>
+            <rect x="22" y="35" width="10" height="20" rx="5" fill="#2eb67d"/>
+            <rect x="35" y="5" width="20" height="10" rx="5" fill="#2eb67d"/>
+          </svg>
+          Slack
+        </div>
+        <div class="logo-chip">
+          <svg width="22" height="22" viewBox="0 0 60 60" fill="none"><circle cx="30" cy="30" r="28" fill="#ff6c37"/><path d="M30 14a16 16 0 100 32A16 16 0 0030 14zm0 8l8 8-8 8-8-8 8-8z" fill="#fff" opacity=".9"/></svg>
+          Postman
+        </div>
+        <div class="logo-chip">
+          <svg width="22" height="22" viewBox="0 0 60 60" fill="none"><path d="M44 6L23 29l-9-8L6 24v12l8 3 9-8 21 23 9-5V11L44 6z" fill="#007acc"/><path d="M44 6v48l9-5V11L44 6zM6 24l8 3v6L6 36V24z" fill="#1ba1e2" opacity=".7"/></svg>
+          VS Code
+        </div>
+        <div class="logo-chip">
+          <svg width="22" height="22" viewBox="0 0 60 60" fill="none"><circle cx="30" cy="30" r="28" fill="#003087"/><text x="50%" y="60%" text-anchor="middle" font-size="18" font-weight="900" fill="#009cde" font-family="Arial">PP</text></svg>
+          PayPal
+        </div>
+        <div class="logo-chip">
+          <svg width="22" height="22" viewBox="0 0 60 60" fill="none"><rect width="60" height="60" rx="8" fill="#6772e5"/><path d="M28 20c0-1.7 1.4-3 3-3s5 1 5 4c0 3.5-4 4.5-4 4.5H23v4h9s5 1.5 5 5.5c0 4-3.5 6-7 6-3.5 0-5-2-5-2" stroke="#fff" stroke-width="3" fill="none"/></svg>
+          Stripe
+        </div>
+        <div class="logo-chip">
+          <svg width="22" height="22" viewBox="0 0 60 60" fill="none"><polygon points="30,4 56,18 56,42 30,56 4,42 4,18" fill="none" stroke="#f16822" stroke-width="3"/><text x="50%" y="60%" text-anchor="middle" font-size="16" font-weight="900" fill="#f16822" font-family="Arial">W3</text></svg>
+          Web3
+        </div>
+        <div class="logo-chip">
+          <svg width="22" height="22" viewBox="0 0 60 60" fill="none"><polygon points="30,4 56,30 30,56 4,30" fill="#8c8c8c" opacity=".5"/><polygon points="30,10 50,30 30,50 10,30" fill="#3c3c3c"/><polygon points="30,18 44,30 30,42 16,30" fill="#627eea"/></svg>
+          ethers.js
+        </div>
+      </div><!-- .logos-track -->
+    </div><!-- .logos-scroll-wrap -->
+  </div>
+</section>
+
+<!-- ── FEATURES ───────────────────────────────────────────────────────────── -->
+<section id="features">
+  <div class="container">
+    <div class="sec-header fade-up">
+      <span class="badge"><span class="dot"></span>Core Features</span>
+      <h2 class="sec-title">Everything you need.<br/><span class="grad-orange">Nothing you don't.</span></h2>
+      <p class="sec-sub">Three interlocking systems — on-chain, off-chain, and P2P — that make FuseFlash the fastest payment primitive on the planet.</p>
+    </div>
+    <div class="cards-grid">
+
+      <div class="card c-orange fade-up">
+        <div class="card-icon ico-orange">⚡</div>
+        <h3 class="card-title">Tap-and-Go Payments</h3>
+        <p class="card-desc">NFC tap triggers the validator, which ECDSA-signs the transfer intent. On-chain verification in one call — no approval transactions, no friction.</p>
+        <span class="card-tag">tapAndGo() · ECDSA · EIP-191</span>
+      </div>
+
+      <div class="card c-blue fade-up" style="transition-delay:.05s">
+        <div class="card-icon ico-blue">🌐</div>
+        <h3 class="card-title">Go P2P Network</h3>
+        <p class="card-desc">Pure-stdlib TCP peer mesh with cryptographically random NodeIDs, Base58-encoded, pronounceable via NATO phonetic alphabet. No external libs.</p>
+        <span class="card-tag">Go 1.21 · TCP · SHA-256</span>
+      </div>
+
+      <div class="card c-pink fade-up" style="transition-delay:.10s">
+        <div class="card-icon ico-pink">🌳</div>
+        <h3 class="card-title">Merkle Whitelist Claims</h3>
+        <p class="card-desc">Off-chain Merkle tree built by the validator. Users submit a proof leaf and claim their FLSH allocation in one gas-efficient transaction.</p>
+        <span class="card-tag">MerkleProof · keccak256 · OpenZeppelin</span>
+      </div>
+
+      <div class="card c-green fade-up" style="transition-delay:.15s">
+        <div class="card-icon ico-green">🛡️</div>
+        <h3 class="card-title">Replay Protection</h3>
+        <p class="card-desc">Every tap nonce and POS session ID is consumed exactly once. Checks-effects-interactions pattern prevents re-entrancy and double-spend.</p>
+        <span class="card-tag">usedTapNonces · bytes32 · CEI</span>
+      </div>
+
+      <div class="card c-amber fade-up" style="transition-delay:.20s">
+        <div class="card-icon ico-amber">🏪</div>
+        <h3 class="card-title">POS Checkout</h3>
+        <p class="card-desc">QR-based point-of-sale flow. Merchant generates a session ID; payer scans and confirms in a single on-chain call with a receipt event for indexers.</p>
+        <span class="card-tag">posCheckout() · sessionId · Event log</span>
+      </div>
+
+      <div class="card c-cyan fade-up" style="transition-delay:.25s">
+        <div class="card-icon ico-cyan">🔗</div>
+        <h3 class="card-title">Block Header Sync</h3>
+        <p class="card-desc">eth/63-inspired header chain: SHA-256 canonical hashing, parent linking, concurrent-safe insert, and a Syncer that requests headers when a peer is ahead.</p>
+        <span class="card-tag">blocksync · Chain · Syncer</span>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── HOW IT WORKS ───────────────────────────────────────────────────────── -->
+<section id="how">
+  <div class="container">
+    <div class="sec-header fade-up">
+      <span class="badge"><span class="dot"></span>Flow</span>
+      <h2 class="sec-title">A tap. A sign. A <span class="grad-pink">transfer.</span></h2>
+      <p class="sec-sub">The entire Tap-and-Go flow from NFC hardware event to settled on-chain token transfer in under two seconds.</p>
+    </div>
+    <div class="timeline">
+
+      <div class="tl-item fade-up">
+        <div class="tl-num">📱</div>
+        <div class="tl-body">
+          <h3 class="tl-title">User taps device</h3>
+          <p class="tl-desc">The payer's phone or NFC card initiates a tap event. The mobile app reads the payee's address and desired amount from the merchant terminal's broadcast.</p>
+        </div>
+      </div>
+
+      <div class="tl-item fade-up" style="transition-delay:.05s">
+        <div class="tl-num">✍️</div>
+        <div class="tl-body">
+          <h3 class="tl-title">Validator signs the intent</h3>
+          <p class="tl-desc">The app calls <code style="font-family:var(--mono);font-size:.82em;background:rgba(255,255,255,.07);padding:2px 6px;border-radius:4px">POST /tap/sign</code> with <code style="font-family:var(--mono);font-size:.82em;background:rgba(255,255,255,.07);padding:2px 6px;border-radius:4px">{from, to, amount, nonce}</code>. The validator service ECDSA-signs the keccak256 hash and returns the signature in &lt;50ms.</p>
+        </div>
+      </div>
+
+      <div class="tl-item fade-up" style="transition-delay:.10s">
+        <div class="tl-num">⛓️</div>
+        <div class="tl-body">
+          <h3 class="tl-title">On-chain verification</h3>
+          <p class="tl-desc">The app submits <code style="font-family:var(--mono);font-size:.82em;background:rgba(255,255,255,.07);padding:2px 6px;border-radius:4px">tapAndGo(from, to, amount, nonce, sig)</code>. The contract recovers the signer via ECDSA and confirms it matches the registered <code style="font-family:var(--mono);font-size:.82em;background:rgba(255,255,255,.07);padding:2px 6px;border-radius:4px">tapValidator</code> address.</p>
+        </div>
+      </div>
+
+      <div class="tl-item fade-up" style="transition-delay:.15s">
+        <div class="tl-num">💸</div>
+        <div class="tl-body">
+          <h3 class="tl-title">Tokens transferred</h3>
+          <p class="tl-desc">The nonce is marked consumed, tokens move from payer to payee in a single ERC-20 transfer, and a <code style="font-family:var(--mono);font-size:.82em;background:rgba(255,255,255,.07);padding:2px 6px;border-radius:4px">TapAndGo</code> event is emitted for indexers and analytics.</p>
+        </div>
+      </div>
+
+      <div class="tl-item fade-up" style="transition-delay:.20s">
+        <div class="tl-num">✅</div>
+        <div class="tl-body">
+          <h3 class="tl-title">Confirmation</h3>
+          <p class="tl-desc">Both parties receive real-time confirmation via the P2P node's event subscription, and the Go blocksync layer propagates the new block header to the network.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── EMOJI BUTTON SHOWCASE ──────────────────────────────────────────────── -->
+<section id="cta-showcase">
+  <div class="container">
+    <div class="sec-header fade-up">
+      <span class="badge"><span class="dot"></span>Interactive</span>
+      <h2 class="sec-title">Actions, not words.<br/><span class="grad-full">Every emoji is a button.</span></h2>
+      <p class="sec-sub">Tap, scan, send, stake — each action is one interaction away. No menus. No confusion.</p>
+    </div>
+    <div class="emoji-grid fade-up">
+      <button class="emoji-btn btn-primary" onclick="this.textContent='✅ Sent!'">
+        <span class="em">⚡</span> Tap &amp; Pay
+      </button>
+      <button class="emoji-btn" style="border-color:rgba(224,64,251,.3);background:rgba(224,64,251,.08)" onclick="alert('✨ Claim initiated!')">
+        <span class="em">✨</span> Claim Tokens
+      </button>
+      <button class="emoji-btn" style="border-color:rgba(255,215,0,.3);background:rgba(255,215,0,.07)" onclick="alert('🌟 Staking soon!')">
+        <span class="em">🌟</span> Stake FLSH
+      </button>
+      <button class="emoji-btn" style="border-color:rgba(0,230,118,.3);background:rgba(0,230,118,.08)" onclick="alert('💯 Score!')">
+        <span class="em">💯</span> Check Score
+      </button>
+      <button class="emoji-btn" style="border-color:rgba(255,107,0,.3);background:rgba(255,107,0,.08)" onclick="alert('🔥 Hot!')">
+        <span class="em">🔥</span> Hot Deals
+      </button>
+      <button class="emoji-btn" style="border-color:rgba(255,140,0,.3);background:rgba(255,140,0,.07)" onclick="alert('🧡 Sent with love!')">
+        <span class="em">🧡</span> Send Love
+      </button>
+      <button class="emoji-btn" style="border-color:rgba(224,64,251,.3);background:rgba(224,64,251,.07)" onclick="alert('❤️ Liked!')">
+        <span class="em">❤️</span> Like
+      </button>
+      <button class="emoji-btn" style="border-color:rgba(41,121,255,.3);background:rgba(41,121,255,.08)" onclick="alert('😺 Meow-velous!')">
+        <span class="em">😺</span> Approve
+      </button>
+      <button class="emoji-btn" style="border-color:rgba(0,229,255,.3);background:rgba(0,229,255,.07)" onclick="alert('😸 Purr-fect!')">
+        <span class="em">😸</span> Sign Tx
+      </button>
+      <button class="emoji-btn" style="border-color:rgba(0,230,118,.3);background:rgba(0,230,118,.07)" onclick="this.innerHTML='<span class=\'em\'>😸</span> Confirmed!'">
+        <span class="em">😸</span> Confirm
+      </button>
+      <button class="emoji-btn btn-blue" onclick="window.open('https://github.com/dlema861011010/dlema861011010','_blank')">
+        <span class="em">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+        </span> Star on GitHub
+      </button>
+      <button class="emoji-btn btn-pink" onclick="alert('Coming soon on mainnet!')">
+        <span class="em">🚀</span> Launch Wallet
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ── TECH STACK ─────────────────────────────────────────────────────────── -->
+<section id="stack">
+  <div class="container">
+    <div class="sec-header fade-up">
+      <span class="badge"><span class="dot"></span>Stack</span>
+      <h2 class="sec-title">Built with the <span class="grad-blue">best tools</span> in the game.</h2>
+      <p class="sec-sub">Zero compromises. Every technology chosen because it's the fastest, safest, or most battle-tested option available.</p>
+    </div>
+    <div class="stack-grid">
+
+      <div class="stack-card fade-up">
+        <div class="sc-icon">🐹</div>
+        <div class="sc-name">Go 1.21</div>
+        <div class="sc-desc">P2P node, block sync, Base58 & phonetic encoding. Zero external deps — pure stdlib.</div>
+      </div>
+      <div class="stack-card fade-up" style="transition-delay:.05s">
+        <div class="sc-icon">🔷</div>
+        <div class="sc-name">Solidity 0.8.20</div>
+        <div class="sc-desc">ERC-20 FLSH token with Merkle claims, ECDSA tap-and-go, and POS checkout.</div>
+      </div>
+      <div class="stack-card fade-up" style="transition-delay:.10s">
+        <div class="sc-icon">🟡</div>
+        <div class="sc-name">Node.js + Express</div>
+        <div class="sc-desc">Validator service: Merkle tree management, EIP-191 signing, Ethereum address validation.</div>
+      </div>
+      <div class="stack-card fade-up" style="transition-delay:.15s">
+        <div class="sc-icon">🛡️</div>
+        <div class="sc-name">OpenZeppelin</div>
+        <div class="sc-desc">Battle-hardened ERC-20, Ownable, MerkleProof, ECDSA, and MessageHashUtils.</div>
+      </div>
+      <div class="stack-card fade-up" style="transition-delay:.20s">
+        <div class="sc-icon">⚗️</div>
+        <div class="sc-name">ethers.js v6</div>
+        <div class="sc-desc">Wallet management, keccak256, ABI encoding, and ECDSA signing in the validator.</div>
+      </div>
+      <div class="stack-card fade-up" style="transition-delay:.25s">
+        <div class="sc-icon">🔨</div>
+        <div class="sc-name">Hardhat</div>
+        <div class="sc-desc">Smart contract compile, test, and coverage pipeline with the full toolbox.</div>
+      </div>
+      <div class="stack-card fade-up" style="transition-delay:.30s">
+        <div class="sc-icon">🌿</div>
+        <div class="sc-name">merkletreejs</div>
+        <div class="sc-desc">Merkle tree construction with sorted pairs — compatible with OpenZeppelin's on-chain verifier.</div>
+      </div>
+      <div class="stack-card fade-up" style="transition-delay:.35s">
+        <div class="sc-icon">🐧</div>
+        <div class="sc-name">Alpine Linux</div>
+        <div class="sc-desc">Minimal, secure container base. The entire Go node image fits in &lt;15MB.</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── QUOTE ──────────────────────────────────────────────────────────────── -->
+<section>
+  <div class="container">
+    <div class="quote-block fade-up">
+      <p class="quote-text">
+        "FuseFlash is what happens when you stop adding complexity and start subtracting it.
+        A Go node with zero dependencies. A Solidity contract in 236 lines. A signing service
+        that does exactly one thing. This is the future of payments."
+      </p>
+      <p class="quote-author"><strong>The FuseFlash Team</strong> · Building the fastest P2P payment layer on Earth ⚡</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── FINAL CTA ───────────────────────────────────────────────────────────── -->
+<section id="final-cta">
+  <div class="container">
+    <div class="fade-up">
+      <span class="badge"><span class="dot"></span>Get Started</span>
+      <h2 class="final-title">Ready to <span class="grad-orange">Flash</span>?<br/><span class="grad-pink">Start building.</span></h2>
+      <p class="final-sub">Clone the repo, spin up the validator, deploy the contract. First tap in under 15 minutes.</p>
+      <div class="final-btns">
+        <a href="https://github.com/dlema861011010/dlema861011010" target="_blank" rel="noopener" class="btn btn-primary btn-large">
+          ⚡ Clone on GitHub
+        </a>
+        <a href="#how" class="btn btn-ghost btn-large">Read the Docs 📖</a>
+        <button class="btn btn-pink btn-large" onclick="alert('😸 Wallet coming soon!')">
+          😸 Open Wallet
+        </button>
+        <button class="btn btn-green btn-large" onclick="navigator.clipboard?.writeText('git clone https://github.com/dlema861011010/dlema861011010').then(()=>this.textContent='✅ Copied!')">
+          💯 Copy Clone URL
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ─────────────────────────────────────────────────────────────── -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="logo">
+          <div class="logo-icon">⚡</div>
+          <span>Fuse<span class="grad-orange">Flash</span></span>
+        </div>
+        <p>Lightning-fast Web3 payments. Go P2P node, Solidity smart contracts, and a Node.js signing service — all open source.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Protocol</h4>
+        <ul>
+          <li><a href="#features">Tap-and-Go</a></li>
+          <li><a href="#features">Merkle Claims</a></li>
+          <li><a href="#features">POS Checkout</a></li>
+          <li><a href="#features">Block Sync</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Developers</h4>
+        <ul>
+          <li><a href="https://github.com/dlema861011010/dlema861011010" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="#stack">Tech Stack</a></li>
+          <li><a href="#how">Architecture</a></li>
+          <li><a href="contracts/FuseFlashToken.sol">Smart Contract</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Community</h4>
+        <ul>
+          <li><a href="#">Twitter / X</a></li>
+          <li><a href="#">Discord</a></li>
+          <li><a href="#">Telegram</a></li>
+          <li><a href="#">Blog</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 FuseFlash. Open source under MIT. Built with ⚡ and 🧡.</p>
+      <div class="footer-socials">
+        <a href="https://github.com/dlema861011010/dlema861011010" target="_blank" rel="noopener" class="social-btn" aria-label="GitHub">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+        </a>
+        <a href="#" class="social-btn" aria-label="Twitter">𝕏</a>
+        <a href="#" class="social-btn" aria-label="Discord">💬</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ── JS ─────────────────────────────────────────────────────────────────── -->
+<script>
+  // Intersection Observer for .fade-up elements
+  const io = new IntersectionObserver(
+    (entries) => entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } }),
+    { threshold: 0.12 }
+  );
+  document.querySelectorAll('.fade-up').forEach(el => io.observe(el));
+
+  // Navbar background on scroll
+  const nav = document.querySelector('nav');
+  window.addEventListener('scroll', () => {
+    nav.style.background = window.scrollY > 50
+      ? 'rgba(8,11,20,.92)'
+      : 'rgba(8,11,20,.7)';
+  });
+
+  // Animated counter for stats
+  function animateCounter(el, target, suffix = '') {
+    let start = 0;
+    const step = target / 60;
+    const id = setInterval(() => {
+      start = Math.min(start + step, target);
+      el.textContent = (start >= target ? target : Math.floor(start)) + suffix;
+      if (start >= target) clearInterval(id);
+    }, 16);
+  }
+
+  // Terminal typewriter effect
+  const lines = document.querySelectorAll('.term-body > div');
+  lines.forEach((line, i) => {
+    line.style.opacity = '0';
+    line.style.transition = `opacity 0.3s ${i * 0.12}s`;
+    setTimeout(() => { line.style.opacity = '1'; }, 600 + i * 120);
+  });
+
+  // Ripple effect on emoji buttons
+  document.querySelectorAll('.emoji-btn, .btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      const r = document.createElement('span');
+      const rect = this.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height) * 2;
+      r.style.cssText = `
+        position:absolute; border-radius:50%; pointer-events:none;
+        width:${size}px; height:${size}px;
+        left:${e.clientX - rect.left - size/2}px;
+        top:${e.clientY - rect.top - size/2}px;
+        background:rgba(255,255,255,.15);
+        transform:scale(0); animation:ripple .5s ease-out forwards;
+      `;
+      this.style.position = 'relative';
+      this.style.overflow = 'hidden';
+      this.appendChild(r);
+      r.addEventListener('animationend', () => r.remove());
+    });
+  });
+
+  // Inject ripple keyframes
+  const style = document.createElement('style');
+  style.textContent = '@keyframes ripple{to{transform:scale(1);opacity:0}}';
+  document.head.appendChild(style);
+</script>
+
+</body>
+</html>
