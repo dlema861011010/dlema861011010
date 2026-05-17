@@ -1,0 +1,13 @@
+# FuseFlash Python bridge – dependencies
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+web3>=7.4.0
+eth-account>=0.13.0
+openai>=1.78.0
+httpx>=0.28.0
+pydantic>=2.11.0
+python-dotenv>=1.0.0
+
+# dev / test
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
