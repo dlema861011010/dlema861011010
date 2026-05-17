@@ -442,7 +442,7 @@ def _abbrev(addr: str) -> str:
         return addr or ""
     # Strip 0x prefix for processing
     clean = addr[2:] if addr.startswith("0x") else addr
-    if len(clean) >= 8:
+    if len(clean) >= 10:
         return f"0x{clean[:6]}…{clean[-4:]}"
     return addr
 
