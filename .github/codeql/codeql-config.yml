@@ -1,0 +1,47 @@
+name: "Enhanced Security CodeQL Config"
+
+# Disable default queries to use only security-focused ones
+disable-default-queries: false
+
+# Additional query packs for enhanced security scanning
+queries:
+  - uses: security-and-quality
+  - uses: security-extended
+
+# Paths to scan
+paths:
+  - fuseflash/
+  - bridge/
+  - smart-wallet/
+  - contracts/
+  - scripts/
+
+# Paths to ignore
+paths-ignore:
+  - '**/node_modules/**'
+  - '**/vendor/**'
+  - '**/dist/**'
+  - '**/build/**'
+  - '**/*.test.js'
+  - '**/*.test.ts'
+  - '**/*.test.go'
+  - '**/testdata/**'
+
+# Query filters - focus on security issues
+query-filters:
+  - include:
+      kind: problem
+      tags contain: security
+  - include:
+      precision: high
+  - include:
+      precision: very-high
+
+# Specific security configurations
+packs:
+  # Go security queries
+  - codeql/go-queries:security-extended
+  # JavaScript security queries
+  - codeql/javascript-queries:security-extended
+  # Python security queries
+  - codeql/python-queries:security-extended
