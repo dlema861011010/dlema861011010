@@ -1,0 +1,82 @@
+# Security - Never commit these files!
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+secrets.json
+secrets.yml
+secrets.yaml
+config/secrets.*
+
+# Private keys (Ethereum, SSH, etc.)
+*-private-key.txt
+privatekey.*
+private_key.*
+*.private
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Dependency directories
+node_modules/
+vendor/
+venv/
+env/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Build outputs
+dist/
+build/
+*.exe
+*.dll
+*.so
+*.dylib
+target/
+
+# Logs and temporary files
+*.log
+logs/
+*.tmp
+tmp/
+temp/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Testing coverage
+coverage/
+*.cover
+.coverage
+htmlcov/
+
+# Security scan reports (keep local only)
+*-report.json
+*-scan-results.*
+slither-*.txt
+bandit-*.json
+
+# Database files (if using local SQLite)
+*.db
+*.sqlite
+*.sqlite3
+
+# Blockchain local data
+geth/
+ethereum-data/
