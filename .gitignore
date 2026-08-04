@@ -1,0 +1,18 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Hardhat
+contracts/artifacts/
+contracts/cache/
+contracts/typechain-types/
+contracts/coverage/
+contracts/coverage.json
+
+# Environment
+.env
+*.env
+
+# Build outputs
+dist/
+build/
