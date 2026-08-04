@@ -106,7 +106,8 @@ func Decode(s string) ([]byte, error) {
 }
 
 // DecodeFixed decodes a Base58 string and returns exactly size bytes.
-// It returns an error if the decoded length does not match size.
+// If the decoded value is shorter than size, it is left-padded with zero bytes.
+// It returns an error only if the decoded value is larger than size.
 func DecodeFixed(s string, size int) ([]byte, error) {
 	b, err := Decode(s)
 	if err != nil {
